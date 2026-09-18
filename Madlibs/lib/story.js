@@ -69,3 +69,19 @@ export function storyToText(segments) {
     if (!Array.isArray(segments)) return '';
     return segments.map((segment) => segment.text).join('');
 }
+
+/**
+ * Pick a random template id, optionally excluding one (so "surprise me"
+ * twice in a row doesn't hand back the story you just played).
+ * `rng` must return a float in [0, 1) -- injected so this is testable.
+ * Returns null when there is nothing to pick from.
+ */
+export function pickRandomTemplateId(templates, excludeId = null, rng = Math.random) {
+    if (!Array.isArray(templates) || templates.length === 0) return null;
+
+    const pool = templates.filter((t) => t && t.id !== excludeId);
+    const source = pool.length === 0 ? templates : pool;
+
+    const i = Math.min(Math.floor(rng() * source.length), source.length - 1);
+    return source[i].id;
+}

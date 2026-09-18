@@ -41,6 +41,18 @@ const styles = StyleSheet.create({
         color: '#777',
         marginTop: 4,
     },
+    surpriseButton: {
+        backgroundColor: '#ff9500',
+        borderRadius: 12,
+        paddingVertical: 14,
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    surpriseButtonText: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: 16,
+    },
     input: {
         borderWidth: 1,
         borderColor: '#ccc',

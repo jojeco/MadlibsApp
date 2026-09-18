@@ -10,8 +10,6 @@
   file-rename/removal trigger in this same run.
 - Persist the last-played template id (and maybe in-progress answers) with AsyncStorage so
   closing and reopening the app doesn't lose an in-progress story.
-- Add a "surprise me" button on the picker that starts a random template instead of making
-  the player choose.
 - Add a "copy story" / share action on the result screen so a finished story can be shared
   outside the app.
 - Add real automated tests (e.g. Jest) for `lib/story.js` -- it's pure and was designed to be
