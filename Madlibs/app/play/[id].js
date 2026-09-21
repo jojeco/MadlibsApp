@@ -13,25 +13,37 @@ export default function PlayScreen() {
     // than once; normalize to a plain string before looking the story up.
     const params = useLocalSearchParams();
     const id = Array.isArray(params.id) ? params.id[0] : params.id;
+    const resume = Array.isArray(params.resume) ? params.resume[0] : params.resume;
+    const blankParam = Array.isArray(params.blank) ? params.blank[0] : params.blank;
     const router = useRouter();
-    const { answers, setAnswer, startGame } = useGame();
+    const { answers, setAnswer, startGame, resumeGame } = useGame();
     const template = getTemplate(id);
 
     const [index, setIndex] = useState(0);
     const [draft, setDraft] = useState('');
     const [error, setError] = useState(null);
 
-    // Always start this template with a clean slate, whether we arrived
-    // from the picker or from "play this one again" on the result screen.
+    // Fresh entry (picker / "play this one again") starts with a clean slate.
+    // With ?resume=1 (from the result screen) keep the existing answers and
+    // jump to the requested blank (?blank=N) so one word can be fixed in place.
     useEffect(() => {
         if (template) {
-            startGame(id);
-            setIndex(0);
-            setDraft('');
+            if (resume && Array.isArray(template.blanks) && template.blanks.length > 0) {
+                const last = template.blanks.length - 1;
+                const parsed = parseInt(blankParam, 10);
+                const startIndex = Number.isNaN(parsed) ? 0 : Math.min(Math.max(parsed, 0), last);
+                resumeGame(id);
+                setIndex(startIndex);
+                setDraft(answers[template.blanks[startIndex].key] || '');
+            } else {
+                startGame(id);
+                setIndex(0);
+                setDraft('');
+            }
             setError(null);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id]);
+    }, [id, resume, blankParam]);
 
     if (!template || !Array.isArray(template.blanks) || template.blanks.length === 0) {
         return (

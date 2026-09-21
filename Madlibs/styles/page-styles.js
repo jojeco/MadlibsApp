@@ -117,6 +117,38 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#3366ee',
     },
+    answersHeading: {
+        fontSize: 13,
+        color: '#777',
+        marginBottom: 8,
+    },
+    chipRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 12,
+    },
+    chip: {
+        backgroundColor: '#f2f2f7',
+        borderRadius: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+    },
+    chipLabel: {
+        fontSize: 11,
+        color: '#777',
+    },
+    chipValue: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#3366ee',
+    },
+    shareButton: {
+        backgroundColor: '#ff9500',
+        borderRadius: 12,
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
     link: {
         marginTop: 16,
     },

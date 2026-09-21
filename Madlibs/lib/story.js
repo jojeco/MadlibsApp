@@ -71,6 +71,26 @@ export function storyToText(segments) {
 }
 
 /**
+ * Index of the blank with the given key, or 0 when the key isn't found or
+ * the template is invalid (never -1, so it's always safe to use as a wizard
+ * position).
+ */
+export function blankIndexForKey(template, key) {
+    if (!template || !Array.isArray(template.blanks)) return 0;
+    const i = template.blanks.findIndex((blank) => blank.key === key);
+    return i < 0 ? 0 : i;
+}
+
+/**
+ * Plain-text version of the finished story for sharing: the title, a blank
+ * line, then the story body. Returns '' when there is no template.
+ */
+export function buildShareText(template, answers) {
+    if (!template) return '';
+    return `${template.title}\n\n${storyToText(buildStory(template, answers))}`;
+}
+
+/**
  * Pick a random template id, optionally excluding one (so "surprise me"
  * twice in a row doesn't hand back the story you just played).
  * `rng` must return a float in [0, 1) -- injected so this is testable.

@@ -21,14 +21,20 @@ export function GameProvider({ children }) {
         setAnswers({});
     }, []);
 
+    // Switch to a template while keeping whatever answers are already stored.
+    // startGame stays the hard reset; this is the "come back and edit" path.
+    const resumeGame = useCallback((id) => {
+        setTemplateId(id);
+    }, []);
+
     const reset = useCallback(() => {
         setTemplateId(null);
         setAnswers({});
     }, []);
 
     const value = useMemo(
-        () => ({ templateId, answers, setAnswer, startGame, reset }),
-        [templateId, answers, setAnswer, startGame, reset]
+        () => ({ templateId, answers, setAnswer, startGame, resumeGame, reset }),
+        [templateId, answers, setAnswer, startGame, resumeGame, reset]
     );
 
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
