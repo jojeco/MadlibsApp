@@ -76,6 +76,10 @@ export default function PlayScreen() {
             return;
         }
         setAnswer(blank.key, result.value);
+        if (resume) {
+            router.replace('/page2');
+            return;
+        }
         if (isLast) {
             router.push('/page2');
         } else {
@@ -116,7 +120,7 @@ export default function PlayScreen() {
                     <Text style={Styles.buttonText}>Back</Text>
                 </Pressable>
                 <Pressable style={Styles.button} onPress={handleNext}>
-                    <Text style={Styles.buttonText}>{isLast ? 'See my story' : 'Next'}</Text>
+                    <Text style={Styles.buttonText}>{resume ? 'Save word' : (isLast ? 'See my story' : 'Next')}</Text>
                 </Pressable>
             </View>
         </View>
