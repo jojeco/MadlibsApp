@@ -157,6 +157,70 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
     },
+    continueCard: {
+        backgroundColor: '#eef1fc',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 20,
+    },
+    continueHeading: {
+        fontSize: 13,
+        color: '#3366ee',
+        fontWeight: '700',
+        marginBottom: 6,
+    },
+    continueTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#222',
+    },
+    continueMeta: {
+        fontSize: 13,
+        color: '#777',
+        marginTop: 4,
+        marginBottom: 12,
+    },
+    secondaryButton: {
+        flex: 1,
+        backgroundColor: '#e2e6f5',
+        borderRadius: 8,
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    secondaryButtonText: {
+        color: '#3366ee',
+        fontWeight: '600',
+        fontSize: 15,
+    },
+    sectionHeading: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#222',
+        marginTop: 4,
+        marginBottom: 12,
+    },
+    historyItem: {
+        backgroundColor: '#f2f2f7',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 12,
+    },
+    historyTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#222',
+    },
+    historyMeta: {
+        fontSize: 12,
+        color: '#999',
+        marginTop: 2,
+        marginBottom: 6,
+    },
+    historyText: {
+        fontSize: 14,
+        color: '#555',
+        lineHeight: 20,
+    },
 });
 
 export default styles;

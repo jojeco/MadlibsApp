@@ -16,7 +16,7 @@ export default function PlayScreen() {
     const resume = Array.isArray(params.resume) ? params.resume[0] : params.resume;
     const blankParam = Array.isArray(params.blank) ? params.blank[0] : params.blank;
     const router = useRouter();
-    const { answers, setAnswer, startGame, resumeGame } = useGame();
+    const { answers, setAnswer, startGame, resumeGame, completeGame } = useGame();
     const template = getTemplate(id);
 
     const [index, setIndex] = useState(0);
@@ -77,10 +77,12 @@ export default function PlayScreen() {
         }
         setAnswer(blank.key, result.value);
         if (resume) {
+            completeGame({ ...answers, [blank.key]: result.value });
             router.replace('/page2');
             return;
         }
         if (isLast) {
+            completeGame({ ...answers, [blank.key]: result.value });
             router.push('/page2');
         } else {
             goToBlank(current + 1);
