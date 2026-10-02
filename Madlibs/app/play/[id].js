@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import Styles from '../../styles/page-styles';
-import { getTemplate, validateWord } from '../../lib/story';
+import { getTemplate, validateWord, isComplete } from '../../lib/story';
 import { useGame } from '../../lib/game-context';
 
 export default function PlayScreen() {
@@ -61,7 +61,7 @@ export default function PlayScreen() {
     // template's last blank. Clamp it so we never read an undefined blank.
     const current = Math.min(index, template.blanks.length - 1);
     const blank = template.blanks[current];
-    const isLast = current === template.blanks.length - 1;
+    const willFinish = isComplete(template, { ...answers, [blank.key]: 'x' });
 
     function goToBlank(nextIndex) {
         setIndex(nextIndex);
@@ -75,15 +75,23 @@ export default function PlayScreen() {
             setError(result.error);
             return;
         }
+        const nextAnswers = { ...answers, [blank.key]: result.value };
         setAnswer(blank.key, result.value);
-        if (resume) {
-            completeGame({ ...answers, [blank.key]: result.value });
-            router.replace('/page2');
+        if (isComplete(template, nextAnswers)) {
+            completeGame(nextAnswers);
+            if (resume) {
+                router.replace('/page2');
+            } else {
+                router.push('/page2');
+            }
             return;
         }
-        if (isLast) {
-            completeGame({ ...answers, [blank.key]: result.value });
-            router.push('/page2');
+        if (resume) {
+            const firstUnansweredIndex = template.blanks.findIndex((b) => {
+                const value = nextAnswers[b.key];
+                return typeof value !== 'string' || value.trim().length === 0;
+            });
+            goToBlank(firstUnansweredIndex);
         } else {
             goToBlank(current + 1);
         }
@@ -122,7 +130,7 @@ export default function PlayScreen() {
                     <Text style={Styles.buttonText}>Back</Text>
                 </Pressable>
                 <Pressable style={Styles.button} onPress={handleNext}>
-                    <Text style={Styles.buttonText}>{resume ? 'Save word' : (isLast ? 'See my story' : 'Next')}</Text>
+                    <Text style={Styles.buttonText}>{willFinish ? (resume ? 'Save word' : 'See my story') : 'Next'}</Text>
                 </Pressable>
             </View>
         </View>

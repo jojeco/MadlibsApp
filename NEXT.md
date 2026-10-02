@@ -34,3 +34,10 @@
 - Add a dedicated history-detail route instead of the inline expand/collapse on the home screen.
 - Consider saving the wizard's half-typed draft for the current blank; right now only committed
   answers persist, so a word typed but not yet submitted is lost on relaunch.
+- ~~`handleNext` in `app/play/[id].js` treated any `?resume=1` as "editing one finished
+  word" and completed the game after a single answer~~ -- fixed: it now checks `isComplete()`
+  against the in-progress answers and, when resuming mid-game, jumps to the first still-unanswered
+  blank instead of finishing early.
+- Follow-up (out of scope for the fix above): devices that already hit the old bug may have
+  blank-riddled ("___") entries sitting in their local "Recent stories" history from before the
+  fix landed; those aren't cleaned up automatically.
