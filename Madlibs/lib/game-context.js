@@ -12,7 +12,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { addToHistory, makeHistoryEntry, newGameId } from './persistence';
 import { gameStore } from './storage';
-import { buildStory, getTemplate, storyToText } from './story';
+import { buildStory, getTemplate, isComplete, storyToText } from './story';
 
 const GameContext = createContext(null);
 
@@ -104,7 +104,8 @@ export function GameProvider({ children }) {
     const completeGame = useCallback(
         (finalAnswers) => {
             const template = getTemplate(templateId);
-            if (!template) return;
+            // History must never store a story with unfilled '___' blanks, regardless of what the caller already checked.
+            if (!template || !isComplete(template, finalAnswers)) return;
             const text = storyToText(buildStory(template, finalAnswers));
             setHistory((prev) =>
                 addToHistory(

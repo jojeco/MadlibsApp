@@ -41,3 +41,9 @@
 - Follow-up (out of scope for the fix above): devices that already hit the old bug may have
   blank-riddled ("___") entries sitting in their local "Recent stories" history from before the
   fix landed; those aren't cleaned up automatically.
+- New entries are now blocked at the write side: `completeGame` in `lib/game-context.js` itself
+  refuses to record an incomplete `finalAnswers` (via `isComplete()`), so this holds for any
+  future caller, not just the current one. A read-side cleanup of already-stored stale entries
+  was deliberately skipped: the bug window was effectively one commit, and a text-based "contains
+  ___" filter would risk false positives since a player can legitimately type the literal string
+  "___" as an answer -- `validateWord` in `lib/story.js` doesn't special-case it.
