@@ -162,6 +162,63 @@ export function parseHistory(raw) {
     return valid.slice(0, HISTORY_LIMIT);
 }
 
+/** Build the href for a history-detail route, or null for a bad id. */
+export function historyHref(gameId) {
+    if (typeof gameId !== 'string' || gameId.length === 0) return null;
+    return `/history/${encodeURIComponent(gameId)}`;
+}
+
+/**
+ * Find a history entry by gameId. Returns null when there's no match, the
+ * history isn't an array, or gameId isn't a non-empty string.
+ */
+export function findHistoryEntry(history, gameId) {
+    if (!Array.isArray(history) || typeof gameId !== 'string' || gameId.length === 0) {
+        return null;
+    }
+    const found = history.find((item) => item && item.gameId === gameId);
+    return found || null;
+}
+
+/**
+ * Pure removal: a new array without the entry matching gameId. Never
+ * mutates the input. Non-array input is treated as [].
+ */
+export function removeFromHistory(history, gameId) {
+    if (!Array.isArray(history)) return [];
+    return history.filter((item) => !(item && item.gameId === gameId));
+}
+
+/**
+ * Plain-text share body for a history entry, in the same
+ * `${title}\n\n${text}` shape as buildShareText in lib/story.js. Returns ''
+ * for a bad entry.
+ */
+export function historyShareText(entry) {
+    if (!entry || typeof entry.title !== 'string' || typeof entry.text !== 'string') return '';
+    return `${entry.title}\n\n${entry.text}`;
+}
+
+/**
+ * Shorten story text for a list preview, appending an ellipsis when it was
+ * cut. Non-string input returns ''.
+ */
+export function historyPreview(text, limit = 80) {
+    if (typeof text !== 'string') return '';
+    return text.length > limit ? `${text.slice(0, limit)}…` : text;
+}
+
+/**
+ * Normalize an expo-router param that may come back as a string, an array
+ * (when a path segment matches more than once), or something else entirely.
+ * Array -> first item (if it's a string); string -> as-is; anything else,
+ * including a first item that isn't a string, -> null.
+ */
+export function normalizeParam(value) {
+    const raw = Array.isArray(value) ? value[0] : value;
+    return typeof raw === 'string' ? raw : null;
+}
+
 /**
  * Wrap an AsyncStorage-shaped backend ({ getItem, setItem, removeItem },
  * all promise-returning) with the save/load logic above. Every write goes

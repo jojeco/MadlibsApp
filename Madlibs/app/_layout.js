@@ -13,6 +13,7 @@ export default function RootLayout() {
                 <Stack.Screen name="index" options={{ title: 'Mad Libs' }} />
                 <Stack.Screen name="play/[id]" options={{ title: 'Fill in the Blanks' }} />
                 <Stack.Screen name="page2" options={{ title: 'Your Story' }} />
+                <Stack.Screen name="history/[gameId]" options={{ title: 'Saved Story' }} />
             </Stack>
         </GameProvider>
     );

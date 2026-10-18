@@ -29,9 +29,19 @@
 - The wizard mount effect in `app/play/[id].js` keys off `[id, resume, blankParam]`. For any new
   entry mode, extend that branch -- don't reintroduce conditional resetting inside `startGame`,
   which must stay a hard reset.
-- Let a "Recent stories" entry be re-shared through `Share` or reopened read-only, rather than
-  only expanding inline on the home screen.
-- Add a dedicated history-detail route instead of the inline expand/collapse on the home screen.
+- ~~Let a "Recent stories" entry be re-shared through `Share` or reopened read-only, rather than
+  only expanding inline on the home screen.~~ -- done: see the history-detail route below.
+- ~~Add a dedicated history-detail route instead of the inline expand/collapse on the home screen.~~
+  -- done: `/history/[gameId]` shows the full story with Share, "Play this template again"
+  (hidden when the template no longer exists), and Delete. The home screen now links to it via
+  `historyHref()` instead of expanding inline.
+- History entries only store the finished story text, not the answers that produced it. A future
+  "edit a word" or highlighted-blanks view from the history screen would need a new, versioned
+  history-entry format that keeps the per-blank answers alongside the text -- today's entries
+  don't have anywhere to recover them from.
+- Delete on the history-detail screen has no confirmation dialog -- it removes the entry
+  immediately on tap. Left out to keep the screen simple and easy to test; a follow-up could wrap
+  it in `Alert.alert` with a confirm/cancel choice.
 - Consider saving the wizard's half-typed draft for the current blank; right now only committed
   answers persist, so a word typed but not yet submitted is lost on relaunch.
 - ~~`handleNext` in `app/play/[id].js` treated any `?resume=1` as "editing one finished

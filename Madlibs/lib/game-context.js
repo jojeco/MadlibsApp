@@ -10,7 +10,7 @@
 // logic in lib/persistence.js).
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { addToHistory, makeHistoryEntry, newGameId } from './persistence';
+import { addToHistory, makeHistoryEntry, newGameId, removeFromHistory } from './persistence';
 import { gameStore } from './storage';
 import { buildStory, getTemplate, isComplete, storyToText } from './story';
 
@@ -126,6 +126,10 @@ export function GameProvider({ children }) {
         setHistory([]);
     }, []);
 
+    const removeHistoryEntry = useCallback((gameIdToRemove) => {
+        setHistory((prev) => removeFromHistory(prev, gameIdToRemove));
+    }, []);
+
     const value = useMemo(
         () => ({
             gameId,
@@ -139,8 +143,22 @@ export function GameProvider({ children }) {
             reset,
             completeGame,
             clearHistory,
+            removeHistoryEntry,
         }),
-        [gameId, templateId, answers, history, ready, setAnswer, startGame, resumeGame, reset, completeGame, clearHistory]
+        [
+            gameId,
+            templateId,
+            answers,
+            history,
+            ready,
+            setAnswer,
+            startGame,
+            resumeGame,
+            reset,
+            completeGame,
+            clearHistory,
+            removeHistoryEntry,
+        ]
     );
 
     return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

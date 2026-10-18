@@ -221,6 +221,16 @@ const styles = StyleSheet.create({
         color: '#555',
         lineHeight: 20,
     },
+    historyHint: {
+        fontSize: 12,
+        color: '#999',
+        marginTop: 4,
+    },
+    historyDetailMeta: {
+        fontSize: 13,
+        color: '#999',
+        marginBottom: 16,
+    },
 });
 
 export default styles;

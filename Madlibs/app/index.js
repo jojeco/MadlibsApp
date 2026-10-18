@@ -6,15 +6,12 @@ import Styles from '../styles/page-styles';
 import TEMPLATES from '../data/templates';
 import { useGame } from '../lib/game-context';
 import { blankCount, getTemplate, pickRandomTemplateId } from '../lib/story';
-import { answeredCount, continueHref, continueTarget } from '../lib/persistence';
-
-const HISTORY_PREVIEW_LENGTH = 80;
+import { answeredCount, continueHref, continueTarget, historyHref, historyPreview } from '../lib/persistence';
 
 export default function Page() {
     const router = useRouter();
     const { startGame, ready, templateId, answers, history, reset, clearHistory } = useGame();
     const [lastPickedId, setLastPickedId] = useState(null);
-    const [expandedId, setExpandedId] = useState(null);
 
     function handlePick(id) {
         setLastPickedId(id);
@@ -37,10 +34,6 @@ export default function Page() {
     function handleContinue() {
         const href = continueHref(templateId, target);
         if (href) router.push(href);
-    }
-
-    function toggleExpanded(gameId) {
-        setExpandedId((prev) => (prev === gameId ? null : gameId));
     }
 
     return (
@@ -85,26 +78,20 @@ export default function Page() {
             {ready && history.length > 0 ? (
                 <View>
                     <Text style={Styles.sectionHeading}>Recent stories</Text>
-                    {history.map((entry) => {
-                        const expanded = expandedId === entry.gameId;
-                        const preview =
-                            entry.text.length > HISTORY_PREVIEW_LENGTH
-                                ? `${entry.text.slice(0, HISTORY_PREVIEW_LENGTH)}…`
-                                : entry.text;
-                        return (
-                            <Pressable
-                                key={entry.gameId}
-                                style={Styles.historyItem}
-                                onPress={() => toggleExpanded(entry.gameId)}
-                            >
-                                <Text style={Styles.historyTitle}>{entry.title}</Text>
-                                <Text style={Styles.historyMeta}>
-                                    {new Date(entry.completedAt).toLocaleDateString()}
-                                </Text>
-                                <Text style={Styles.historyText}>{expanded ? entry.text : preview}</Text>
-                            </Pressable>
-                        );
-                    })}
+                    {history.map((entry) => (
+                        <Pressable
+                            key={entry.gameId}
+                            style={Styles.historyItem}
+                            onPress={() => router.push(historyHref(entry.gameId))}
+                        >
+                            <Text style={Styles.historyTitle}>{entry.title}</Text>
+                            <Text style={Styles.historyMeta}>
+                                {new Date(entry.completedAt).toLocaleDateString()}
+                            </Text>
+                            <Text style={Styles.historyText}>{historyPreview(entry.text)}</Text>
+                            <Text style={Styles.historyHint}>Tap to open</Text>
+                        </Pressable>
+                    ))}
                     <Pressable style={Styles.secondaryButton} onPress={clearHistory}>
                         <Text style={Styles.secondaryButtonText}>Clear history</Text>
                     </Pressable>

@@ -60,6 +60,14 @@ async function main() {
         addToHistory,
         parseHistory,
         createGameStore,
+        serializeHistory,
+        historyHref,
+        findHistoryEntry,
+        removeFromHistory,
+        historyShareText,
+        historyPreview,
+        normalizeParam,
+        HISTORY_KEY,
     } = persistence;
 
     function getTemplate(id) {
@@ -337,6 +345,141 @@ async function main() {
         assert.equal(id1, id2);
         assert.equal(id1, (1000).toString(36) + '-' + Math.floor(0.5 * 1e6).toString(36));
     });
+
+    // -- historyHref --------------------------------------------------------
+    test('historyHref: round trip with encodeURIComponent', () => {
+        assert.equal(historyHref('abc123'), '/history/abc123');
+    });
+
+    test('historyHref: special characters get encoded', () => {
+        const id = 'a/b c?d';
+        const href = historyHref(id);
+        assert.equal(href, `/history/${encodeURIComponent(id)}`);
+        assert.equal(decodeURIComponent(href.slice('/history/'.length)), id);
+    });
+
+    test('historyHref: empty string returns null', () => {
+        assert.equal(historyHref(''), null);
+    });
+
+    test('historyHref: non-string input returns null', () => {
+        assert.equal(historyHref(null), null);
+        assert.equal(historyHref(undefined), null);
+        assert.equal(historyHref(42), null);
+    });
+
+    // -- findHistoryEntry -----------------------------------------------------
+    test('findHistoryEntry: finds a matching entry', () => {
+        const list = [
+            { gameId: 'a', templateId: 't', title: 'A', text: 'x', completedAt: 1 },
+            { gameId: 'b', templateId: 't', title: 'B', text: 'y', completedAt: 2 },
+        ];
+        assert.deepEqual(findHistoryEntry(list, 'b'), list[1]);
+    });
+
+    test('findHistoryEntry: no match returns null', () => {
+        const list = [{ gameId: 'a', templateId: 't', title: 'A', text: 'x', completedAt: 1 }];
+        assert.equal(findHistoryEntry(list, 'nope'), null);
+    });
+
+    test('findHistoryEntry: non-array history returns null', () => {
+        assert.equal(findHistoryEntry(null, 'a'), null);
+        assert.equal(findHistoryEntry('nope', 'a'), null);
+    });
+
+    test('findHistoryEntry: bad id returns null', () => {
+        const list = [{ gameId: 'a', templateId: 't', title: 'A', text: 'x', completedAt: 1 }];
+        assert.equal(findHistoryEntry(list, ''), null);
+        assert.equal(findHistoryEntry(list, null), null);
+        assert.equal(findHistoryEntry(list, 42), null);
+    });
+
+    // -- removeFromHistory ------------------------------------------------
+    test('removeFromHistory: removes the matching entry without mutating input', () => {
+        const list = [
+            { gameId: 'a', templateId: 't', title: 'A', text: 'x', completedAt: 1 },
+            { gameId: 'b', templateId: 't', title: 'B', text: 'y', completedAt: 2 },
+        ];
+        const result = removeFromHistory(list, 'a');
+        assert.deepEqual(result, [list[1]]);
+        assert.equal(list.length, 2); // input untouched
+    });
+
+    test('removeFromHistory: missing id is a no-op (new array, same contents)', () => {
+        const list = [{ gameId: 'a', templateId: 't', title: 'A', text: 'x', completedAt: 1 }];
+        const result = removeFromHistory(list, 'nope');
+        assert.deepEqual(result, list);
+        assert.notEqual(result, list);
+    });
+
+    test('removeFromHistory: non-array input returns []', () => {
+        assert.deepEqual(removeFromHistory(null, 'a'), []);
+        assert.deepEqual(removeFromHistory(undefined, 'a'), []);
+        assert.deepEqual(removeFromHistory('nope', 'a'), []);
+    });
+
+    // -- historyShareText ---------------------------------------------------
+    test('historyShareText: matches the title + blank-line + text format', () => {
+        const entry = { gameId: 'g1', templateId: 't1', title: 'My Story', text: 'Once upon a time.', completedAt: 1 };
+        assert.equal(historyShareText(entry), 'My Story\n\nOnce upon a time.');
+    });
+
+    test('historyShareText: bad entry returns empty string', () => {
+        assert.equal(historyShareText(null), '');
+        assert.equal(historyShareText({}), '');
+        assert.equal(historyShareText({ title: 'T' }), '');
+    });
+
+    // -- historyPreview -----------------------------------------------------
+    test('historyPreview: exactly the limit is returned unchanged', () => {
+        const text = 'x'.repeat(80);
+        assert.equal(historyPreview(text), text);
+    });
+
+    test('historyPreview: over the limit is truncated with an ellipsis', () => {
+        const text = 'x'.repeat(81);
+        const result = historyPreview(text);
+        assert.equal(result, `${'x'.repeat(80)}…`);
+    });
+
+    test('historyPreview: non-string input returns empty string', () => {
+        assert.equal(historyPreview(null), '');
+        assert.equal(historyPreview(undefined), '');
+        assert.equal(historyPreview(42), '');
+    });
+
+    // -- normalizeParam -------------------------------------------------------
+    test('normalizeParam: array returns its first item', () => {
+        assert.equal(normalizeParam(['id1', 'id2']), 'id1');
+    });
+
+    test('normalizeParam: string is returned as-is', () => {
+        assert.equal(normalizeParam('id1'), 'id1');
+    });
+
+    test('normalizeParam: undefined returns null', () => {
+        assert.equal(normalizeParam(undefined), null);
+    });
+
+    test('normalizeParam: number returns null', () => {
+        assert.equal(normalizeParam(42), null);
+    });
+
+    // -- round trip: addToHistory -> removeFromHistory -> serialize/parse ---
+    await (async () => {
+        const backend = makeFakeBackend();
+        const store = createGameStore(backend);
+        const entry = makeHistoryEntry({ gameId: 'g1', templateId: 'space-vacation', title: 'T', text: 'hi', now: () => 1 });
+        const afterAdd = addToHistory([], entry);
+        await store.saveHistory(afterAdd);
+        const afterRemove = removeFromHistory(afterAdd, 'g1');
+        await store.saveHistory(afterRemove);
+        const loaded = await store.loadHistory();
+        test('round trip: addToHistory -> removeFromHistory -> save/loadHistory ends up empty', () => {
+            assert.deepEqual(loaded, []);
+            assert.equal(backend.store.get(HISTORY_KEY), serializeHistory([]));
+        });
+    })();
 
     console.log(`${passed} passed, ${failed} failed`);
     if (failed > 0) process.exitCode = 1;
