@@ -39,9 +39,10 @@
   "edit a word" or highlighted-blanks view from the history screen would need a new, versioned
   history-entry format that keeps the per-blank answers alongside the text -- today's entries
   don't have anywhere to recover them from.
-- Delete on the history-detail screen has no confirmation dialog -- it removes the entry
-  immediately on tap. Left out to keep the screen simple and easy to test; a follow-up could wrap
-  it in `Alert.alert` with a confirm/cancel choice.
+- ~~Delete on the history-detail screen has no confirmation dialog -- it removes the entry
+  immediately on tap.~~ -- done: `handleDelete` now asks for confirmation first (`Alert.alert`
+  with Cancel/Delete on native, `window.confirm` on web, since react-native-web's `Alert.alert`
+  is a no-op) and only calls the actual removal, now in `confirmDelete`, if the player confirms.
 - Consider saving the wizard's half-typed draft for the current blank; right now only committed
   answers persist, so a word typed but not yet submitted is lost on relaunch.
 - ~~`handleNext` in `app/play/[id].js` treated any `?resume=1` as "editing one finished

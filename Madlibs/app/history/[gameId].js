@@ -1,8 +1,9 @@
 // app/history/[gameId].js
 // Detail view for a single "Recent stories" entry: full story text, Share,
 // "play this template again" (only when the template still exists), and
-// delete. Reached from the home screen via historyHref().
-import { Pressable, ScrollView, Share, Text, View } from 'react-native';
+// delete (now behind a confirm/cancel prompt). Reached from the home screen
+// via historyHref().
+import { Alert, Platform, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import Styles from '../../styles/page-styles';
 import { findHistoryEntry, historyShareText, normalizeParam } from '../../lib/persistence';
@@ -63,9 +64,26 @@ export default function HistoryDetailScreen() {
         router.replace('/play/' + entry.templateId);
     }
 
-    function handleDelete() {
+    // Removes the entry and returns to the home screen; only reachable through
+    // the confirmation below, never directly from a tap.
+    function confirmDelete() {
         removeHistoryEntry(entry.gameId);
         router.replace('/');
+    }
+
+    // Asks for confirmation before deleting: react-native-web's Alert.alert is a
+    // no-op, so web falls back to window.confirm; native uses the real Alert.
+    function handleDelete() {
+        if (Platform.OS === 'web') {
+            if (typeof window !== 'undefined' && window.confirm("Delete this story? This can't be undone.")) {
+                confirmDelete();
+            }
+        } else {
+            Alert.alert('Delete this story?', "This can't be undone.", [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', style: 'destructive', onPress: confirmDelete },
+            ]);
+        }
     }
 
     function handleBack() {
