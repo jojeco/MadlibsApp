@@ -43,6 +43,10 @@
   immediately on tap.~~ -- done: `handleDelete` now asks for confirmation first (`Alert.alert`
   with Cancel/Delete on native, `window.confirm` on web, since react-native-web's `Alert.alert`
   is a no-op) and only calls the actual removal, now in `confirmDelete`, if the player confirms.
+- ~~"Clear history" and "Discard" on the home screen had no confirmation dialog -- they wiped
+  all saved stories / the in-progress game immediately on tap.~~ -- done: `app/index.js` now has
+  a shared `confirmThen` helper (same `Alert.alert`/`window.confirm` pattern as the history-detail
+  screen) and `handleClearHistory`/`handleDiscard` wrap `clearHistory`/`reset` behind it.
 - Consider saving the wizard's half-typed draft for the current blank; right now only committed
   answers persist, so a word typed but not yet submitted is lost on relaunch.
 - ~~`handleNext` in `app/play/[id].js` treated any `?resume=1` as "editing one finished

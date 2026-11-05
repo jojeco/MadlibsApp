@@ -1,6 +1,6 @@
 // index.js
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Styles from '../styles/page-styles';
 import TEMPLATES from '../data/templates';
@@ -36,6 +36,30 @@ export default function Page() {
         if (href) router.push(href);
     }
 
+    // Asks for confirmation before a destructive action: react-native-web's
+    // Alert.alert is a no-op, so web falls back to window.confirm; native
+    // uses the real Alert.
+    function confirmThen(title, message, confirmLabel, onConfirm) {
+        if (Platform.OS === 'web') {
+            if (typeof window !== 'undefined' && window.confirm(`${title} ${message}`)) {
+                onConfirm();
+            }
+        } else {
+            Alert.alert(title, message, [
+                { text: 'Cancel', style: 'cancel' },
+                { text: confirmLabel, style: 'destructive', onPress: onConfirm },
+            ]);
+        }
+    }
+
+    function handleClearHistory() {
+        confirmThen('Clear all recent stories?', "This can't be undone.", 'Clear', clearHistory);
+    }
+
+    function handleDiscard() {
+        confirmThen('Discard this story?', 'Your words so far will be lost.', 'Discard', reset);
+    }
+
     return (
         <ScrollView contentContainerStyle={Styles.screen}>
             <Text style={Styles.title}>Mad Libs</Text>
@@ -54,7 +78,7 @@ export default function Page() {
                         <Pressable style={Styles.button} onPress={handleContinue}>
                             <Text style={Styles.buttonText}>Continue</Text>
                         </Pressable>
-                        <Pressable style={Styles.secondaryButton} onPress={reset}>
+                        <Pressable style={Styles.secondaryButton} onPress={handleDiscard}>
                             <Text style={Styles.secondaryButtonText}>Discard</Text>
                         </Pressable>
                     </View>
@@ -92,7 +116,7 @@ export default function Page() {
                             <Text style={Styles.historyHint}>Tap to open</Text>
                         </Pressable>
                     ))}
-                    <Pressable style={Styles.secondaryButton} onPress={clearHistory}>
+                    <Pressable style={Styles.secondaryButton} onPress={handleClearHistory}>
                         <Text style={Styles.secondaryButtonText}>Clear history</Text>
                     </Pressable>
                 </View>
