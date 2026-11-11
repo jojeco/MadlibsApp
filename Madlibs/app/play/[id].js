@@ -99,6 +99,13 @@ export default function PlayScreen() {
 
     function handleBack() {
         if (current === 0) return;
+        // Save the current draft before leaving it, so Back doesn't discard an
+        // unsubmitted word -- but never block Back, and never overwrite with
+        // an empty/invalid draft.
+        const result = validateWord(draft);
+        if (result.ok) {
+            setAnswer(blank.key, result.value);
+        }
         goToBlank(current - 1);
     }
 

@@ -49,6 +49,10 @@
   screen) and `handleClearHistory`/`handleDiscard` wrap `clearHistory`/`reset` behind it.
 - Consider saving the wizard's half-typed draft for the current blank; right now only committed
   answers persist, so a word typed but not yet submitted is lost on relaunch.
+- ~~`handleBack` in `app/play/[id].js` discarded a valid but not-yet-submitted draft when going
+  back to the previous blank~~ -- fixed: it now validates the draft via `validateWord` and saves
+  it with `setAnswer` before calling `goToBlank`, same-session only. This does not persist across
+  app restarts -- see the "half-typed draft" item above, which is still open.
 - ~~`handleNext` in `app/play/[id].js` treated any `?resume=1` as "editing one finished
   word" and completed the game after a single answer~~ -- fixed: it now checks `isComplete()`
   against the in-progress answers and, when resuming mid-game, jumps to the first still-unanswered
