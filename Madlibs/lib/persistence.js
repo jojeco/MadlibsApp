@@ -12,6 +12,7 @@ export const GAME_KEY = 'madlibs:game:v1';
 export const HISTORY_KEY = 'madlibs:history:v1';
 export const SNAPSHOT_VERSION = 1;
 export const HISTORY_LIMIT = 10;
+export const HISTORY_ENTRY_VERSION = 2;
 
 /** Deterministic-when-injected id for a fresh game. */
 export function newGameId(now = Date.now, rng = Math.random) {
@@ -108,9 +109,18 @@ export function continueHref(templateId, target) {
     return null;
 }
 
-/** Build a finished-story history entry. */
-export function makeHistoryEntry({ gameId, templateId, title, text, now = Date.now }) {
-    return { gameId, templateId, title, text, completedAt: now() };
+/**
+ * Build a finished-story history entry. `answers` is kept as a shallow copy
+ * (so later mutating the caller's object doesn't change the saved entry)
+ * when it's an object; otherwise the `answers` key is left out entirely so
+ * the shape stays predictable.
+ */
+export function makeHistoryEntry({ gameId, templateId, title, text, answers, now = Date.now }) {
+    const entry = { v: HISTORY_ENTRY_VERSION, gameId, templateId, title, text, completedAt: now() };
+    if (answers && typeof answers === 'object') {
+        entry.answers = { ...answers };
+    }
+    return entry;
 }
 
 /**
@@ -130,9 +140,30 @@ export function serializeHistory(list) {
 }
 
 /**
+ * Clean up an already-valid history item's `answers` field without ever
+ * dropping the entry itself: missing stays missing, a plain object keeps
+ * only its string-valued keys, and anything else (null, array, string,
+ * number) is removed entirely.
+ */
+function normalizeHistoryAnswers(item) {
+    if (item.answers === undefined) return item;
+    if (item.answers && typeof item.answers === 'object' && !Array.isArray(item.answers)) {
+        const clean = {};
+        for (const key of Object.keys(item.answers)) {
+            if (typeof item.answers[key] === 'string') clean[key] = item.answers[key];
+        }
+        return { ...item, answers: clean };
+    }
+    const { answers, ...rest } = item;
+    return rest;
+}
+
+/**
  * Parse a stored history list. Never throws -- corrupt JSON, non-array
  * JSON, or individually malformed entries are dropped rather than
- * propagated, and the result is capped at HISTORY_LIMIT.
+ * propagated, and the result is capped at HISTORY_LIMIT. A legacy (v1,
+ * no `answers`) entry is still valid; a bad `answers` field is cleaned up
+ * rather than causing the whole entry to be dropped.
  */
 export function parseHistory(raw) {
     if (raw == null || typeof raw !== 'string') return [];
@@ -159,7 +190,7 @@ export function parseHistory(raw) {
         );
     });
 
-    return valid.slice(0, HISTORY_LIMIT);
+    return valid.map(normalizeHistoryAnswers).slice(0, HISTORY_LIMIT);
 }
 
 /** Build the href for a history-detail route, or null for a bad id. */
@@ -178,6 +209,27 @@ export function findHistoryEntry(history, gameId) {
     }
     const found = history.find((item) => item && item.gameId === gameId);
     return found || null;
+}
+
+/**
+ * Sanitized per-blank answers for a history entry against its template, or
+ * `null` -- which means "treat as a legacy text-only entry": bad
+ * entry/template, a non-object `answers`, a `templateId` that doesn't match
+ * the template, a missing blank, or (when `renderText` is given) rendered
+ * text that no longer matches `entry.text` -- e.g. the template was edited
+ * since the story was saved, so we never show or remix a different story
+ * than the one the player actually finished.
+ */
+export function historyAnswers(entry, template, renderText) {
+    if (!entry || !template || !Array.isArray(template.blanks)) return null;
+    if (!entry.answers || typeof entry.answers !== 'object' || Array.isArray(entry.answers)) return null;
+    if (entry.templateId !== template.id) return null;
+
+    const clean = sanitizeAnswers(template, entry.answers);
+    if (!template.blanks.every((blank) => blank.key in clean)) return null;
+    if (typeof renderText === 'function' && renderText(template, clean) !== entry.text) return null;
+
+    return clean;
 }
 
 /**

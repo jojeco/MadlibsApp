@@ -115,6 +115,7 @@ export function GameProvider({ children }) {
                         templateId,
                         title: template.title,
                         text,
+                        answers: finalAnswers,
                     })
                 )
             );
@@ -128,6 +129,16 @@ export function GameProvider({ children }) {
 
     const removeHistoryEntry = useCallback((gameIdToRemove) => {
         setHistory((prev) => removeFromHistory(prev, gameIdToRemove));
+    }, []);
+
+    // Load a history entry's saved answers into a fresh game so the player
+    // can change a word and finish again. Always a new gameId, so finishing
+    // the remix saves a new history entry and leaves the original alone.
+    const remixGame = useCallback((templateIdToRemix, answersToRemix) => {
+        touchedRef.current = true;
+        setGameId(newGameId());
+        setTemplateId(templateIdToRemix);
+        setAnswers({ ...answersToRemix });
     }, []);
 
     const value = useMemo(
@@ -144,6 +155,7 @@ export function GameProvider({ children }) {
             completeGame,
             clearHistory,
             removeHistoryEntry,
+            remixGame,
         }),
         [
             gameId,
@@ -158,6 +170,7 @@ export function GameProvider({ children }) {
             completeGame,
             clearHistory,
             removeHistoryEntry,
+            remixGame,
         ]
     );
 

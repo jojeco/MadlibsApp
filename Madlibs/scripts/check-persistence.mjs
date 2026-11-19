@@ -67,6 +67,8 @@ async function main() {
         historyShareText,
         historyPreview,
         normalizeParam,
+        historyAnswers,
+        HISTORY_ENTRY_VERSION,
         HISTORY_KEY,
     } = persistence;
 
@@ -169,9 +171,39 @@ async function main() {
     });
 
     // -- makeHistoryEntry / addToHistory ---------------------------------------
-    test('makeHistoryEntry: builds entry with injected now', () => {
+    test('makeHistoryEntry: builds a v2 entry with injected now and answers', () => {
+        const entry = makeHistoryEntry({
+            gameId: 'g1',
+            templateId: 't1',
+            title: 'T',
+            text: 'hi',
+            answers: { b1: 'Mars' },
+            now: () => 42,
+        });
+        assert.deepEqual(entry, {
+            v: 2,
+            gameId: 'g1',
+            templateId: 't1',
+            title: 'T',
+            text: 'hi',
+            completedAt: 42,
+            answers: { b1: 'Mars' },
+        });
+        assert.equal(entry.v, HISTORY_ENTRY_VERSION);
+    });
+
+    test('makeHistoryEntry: with no answers leaves out the answers key, v is still 2', () => {
         const entry = makeHistoryEntry({ gameId: 'g1', templateId: 't1', title: 'T', text: 'hi', now: () => 42 });
-        assert.deepEqual(entry, { gameId: 'g1', templateId: 't1', title: 'T', text: 'hi', completedAt: 42 });
+        assert.equal(entry.v, 2);
+        assert.ok(!('answers' in entry));
+    });
+
+    test('makeHistoryEntry: copies answers, mutating the input afterwards does not change the entry', () => {
+        const answers = { b1: 'Mars' };
+        const entry = makeHistoryEntry({ gameId: 'g1', templateId: 't1', title: 'T', text: 'hi', answers, now: () => 42 });
+        answers.b1 = 'Pluto';
+        answers.b2 = 'new';
+        assert.deepEqual(entry.answers, { b1: 'Mars' });
     });
 
     test('addToHistory: adding puts the entry first', () => {
@@ -246,6 +278,86 @@ async function main() {
             completedAt: i,
         }));
         assert.equal(parseHistory(JSON.stringify(list)).length, HISTORY_LIMIT);
+    });
+
+    test('parseHistory: keeps a legacy entry (no v, no answers) unchanged', () => {
+        const legacy = { gameId: 'a', templateId: 't', title: 'T', text: 'x', completedAt: 1 };
+        const result = parseHistory(JSON.stringify([legacy]));
+        assert.equal(result.length, 1);
+        assert.deepEqual(result[0], legacy);
+    });
+
+    test('parseHistory: keeps a v2 entry with answers intact', () => {
+        const v2 = { v: 2, gameId: 'a', templateId: 't', title: 'T', text: 'x', completedAt: 1, answers: { b1: 'Mars' } };
+        const result = parseHistory(JSON.stringify([v2]));
+        assert.equal(result.length, 1);
+        assert.deepEqual(result[0], v2);
+    });
+
+    test('parseHistory: answers that are null/array/string are removed, entry is kept', () => {
+        const base = { gameId: 'a', templateId: 't', title: 'T', text: 'x', completedAt: 1 };
+        const list = [
+            { ...base, gameId: 'null', answers: null },
+            { ...base, gameId: 'array', answers: ['Mars'] },
+            { ...base, gameId: 'string', answers: 'Mars' },
+        ];
+        const result = parseHistory(JSON.stringify(list));
+        assert.equal(result.length, 3);
+        result.forEach((item) => assert.ok(!('answers' in item)));
+    });
+
+    test('parseHistory: drops non-string answer values but keeps the entry', () => {
+        const raw = JSON.stringify([
+            {
+                gameId: 'a',
+                templateId: 't',
+                title: 'T',
+                text: 'x',
+                completedAt: 1,
+                answers: { b1: 'Mars', b2: 42, b3: null, b4: 'Rex' },
+            },
+        ]);
+        const result = parseHistory(raw);
+        assert.equal(result.length, 1);
+        assert.deepEqual(result[0].answers, { b1: 'Mars', b4: 'Rex' });
+    });
+
+    // -- historyAnswers -----------------------------------------------------
+    const fullAnswers = { b1: 'Mars', b2: 'Rex', b3: 'aliens', b4: 'sparkly', b5: '7', b6: 'juggle' };
+
+    // Mirrors buildStory + storyToText from lib/story.js closely enough to
+    // test template-drift detection without loading story.js (it imports
+    // data/templates.js by relative path, which this harness can't load as
+    // a data: URL module).
+    function fakeRenderText(t, answers) {
+        return t.parts
+            .map((part) => (typeof part === 'string' ? part : (answers[part.blank] || '___')))
+            .join('');
+    }
+
+    test('historyAnswers: returns sanitized answers for a complete entry, no renderText', () => {
+        const entry = { v: 2, gameId: 'a', templateId: 'space-vacation', title: 'T', text: 'x', completedAt: 1, answers: fullAnswers };
+        assert.deepEqual(historyAnswers(entry, template), fullAnswers);
+    });
+
+    test('historyAnswers: null for a legacy entry, a missing blank, and a templateId mismatch', () => {
+        const legacy = { gameId: 'a', templateId: 'space-vacation', title: 'T', text: 'x', completedAt: 1 };
+        assert.equal(historyAnswers(legacy, template), null);
+
+        const missingBlank = { ...legacy, answers: { b1: 'Mars', b2: 'Rex' } };
+        assert.equal(historyAnswers(missingBlank, template), null);
+
+        const mismatch = { ...legacy, templateId: 'monster-under-bed', answers: fullAnswers };
+        assert.equal(historyAnswers(mismatch, template), null);
+    });
+
+    test('historyAnswers: null when renderText differs from entry.text, answers when it matches', () => {
+        const matchingText = fakeRenderText(template, fullAnswers);
+        const entry = { v: 2, gameId: 'a', templateId: 'space-vacation', title: 'T', text: matchingText, completedAt: 1, answers: fullAnswers };
+        assert.deepEqual(historyAnswers(entry, template, fakeRenderText), fullAnswers);
+
+        const driftedEntry = { ...entry, text: 'something else entirely' };
+        assert.equal(historyAnswers(driftedEntry, template, fakeRenderText), null);
     });
 
     // -- createGameStore ----------------------------------------------------
@@ -478,6 +590,31 @@ async function main() {
         test('round trip: addToHistory -> removeFromHistory -> save/loadHistory ends up empty', () => {
             assert.deepEqual(loaded, []);
             assert.equal(backend.store.get(HISTORY_KEY), serializeHistory([]));
+        });
+    })();
+
+    // -- round trip: legacy + v2 entries through createGameStore ------------
+    await (async () => {
+        const backend = makeFakeBackend();
+        const store = createGameStore(backend);
+        const legacy = { gameId: 'legacy', templateId: 'space-vacation', title: 'Legacy', text: 'old text', completedAt: 1 };
+        const v2 = makeHistoryEntry({
+            gameId: 'v2',
+            templateId: 'space-vacation',
+            title: 'New',
+            text: 'new text',
+            answers: fullAnswers,
+            now: () => 2,
+        });
+        await store.saveHistory([v2, legacy]);
+        const loaded = await store.loadHistory();
+        test('round trip: a list mixing a legacy and a v2 entry reloads with the right shapes', () => {
+            assert.equal(loaded.length, 2);
+            const loadedV2 = loaded.find((item) => item.gameId === 'v2');
+            const loadedLegacy = loaded.find((item) => item.gameId === 'legacy');
+            assert.deepEqual(loadedV2, v2);
+            assert.deepEqual(loadedLegacy, legacy);
+            assert.ok(!('answers' in loadedLegacy));
         });
     })();
 

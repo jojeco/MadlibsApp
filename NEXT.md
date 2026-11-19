@@ -35,10 +35,23 @@
   -- done: `/history/[gameId]` shows the full story with Share, "Play this template again"
   (hidden when the template no longer exists), and Delete. The home screen now links to it via
   `historyHref()` instead of expanding inline.
-- History entries only store the finished story text, not the answers that produced it. A future
+- ~~History entries only store the finished story text, not the answers that produced it. A future
   "edit a word" or highlighted-blanks view from the history screen would need a new, versioned
   history-entry format that keeps the per-blank answers alongside the text -- today's entries
-  don't have anywhere to recover them from.
+  don't have anywhere to recover them from.~~ -- done: history entries are now `v: 2` with an
+  `answers` map, under the same `HISTORY_KEY` storage key (no migration, no key change). Legacy
+  (no `v`, no `answers`) entries still load and render as plain text with no Remix button.
+  `historyAnswers()` in `lib/persistence.js` guards against template drift -- if the template's
+  text no longer matches what the saved answers would render, it falls back to legacy
+  (plain-text) display rather than showing or remixing a different story than the one the player
+  saved. The history-detail screen now highlights the filled-in words, lists them as chips, and
+  offers "Remix this story", which loads the saved answers into a fresh game under a *new*
+  gameId (`remixGame()` in `lib/game-context.js`) -- finishing the remix saves a new history
+  entry and leaves the original untouched.
+- Follow-up: remixing a legacy entry is impossible by design -- there are no saved answers to
+  recover, only the finished text.
+- Follow-up: the half-typed-draft item above (saving the wizard's in-progress, not-yet-submitted
+  word) is still open.
 - ~~Delete on the history-detail screen has no confirmation dialog -- it removes the entry
   immediately on tap.~~ -- done: `handleDelete` now asks for confirmation first (`Alert.alert`
   with Cancel/Delete on native, `window.confirm` on web, since react-native-web's `Alert.alert`
